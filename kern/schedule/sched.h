@@ -37,6 +37,14 @@ struct sched_class
      */
 };
 
+/*
+ * run_queue（运行队列）是“调度算法”的核心数据结构（lab6）
+ *
+ * - run_list：RR 需要的就绪队列（链表队列）
+ * - lab6_run_pool：Stride 需要的优先队列（斜堆），用于快速取出 stride 最小的进程
+ *
+ * 这也是 lab6 相对 lab5 的关键变化：框架提供统一入口，算法可自由选择底层数据结构。
+ */
 struct run_queue
 {
     list_entry_t run_list;

@@ -1052,6 +1052,7 @@ work(unsigned int times) {
 
     yield();
   800612:	b43ff0ef          	jal	ra,800154 <yield>
+    // 主动让出一次 CPU，确保调度路径（sys_yield -> need_resched -> schedule）可触发
 
     cprintf("pid %d is running (%d times)!.\n", getpid(), times);
   800616:	b43ff0ef          	jal	ra,800158 <getpid>
@@ -1248,7 +1249,7 @@ main(void) {
     panic("FAIL: T.T\n");
   80076c:	00000617          	auipc	a2,0x0
   800770:	3ec60613          	addi	a2,a2,1004 # 800b58 <error_string+0x128>
-  800774:	05200593          	li	a1,82
+  800774:	05b00593          	li	a1,91
   800778:	00000517          	auipc	a0,0x0
   80077c:	3f050513          	addi	a0,a0,1008 # 800b68 <error_string+0x138>
   800780:	8a7ff0ef          	jal	ra,800026 <__panic>

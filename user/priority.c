@@ -10,6 +10,20 @@ unsigned int acc[TOTAL];
 int status[TOTAL];
 int pids[TOTAL];
 
+/*
+ * priority.c：调度算法测试用例（lab6）
+ *
+ * 测试思路：
+ * - 父进程 fork 出 TOTAL 个子进程
+ * - 每个子进程设置不同 priority，并做 CPU-bound 自旋计数 acc[]
+ * - 运行到 MAX_TIME 后退出，把 acc 作为退出码返回给父进程
+ * - 父进程 wait 收集 acc，并打印 “sched result”
+ *
+ * 预期现象：
+ * - RR：各进程获得 CPU 时间接近，sched result 倾向于 1 1 1 1 1
+ * - Stride：不同 priority 的进程 acc 按比例差异，sched result 会出现非均等分配
+ */
+
 static void
 spin_delay(void)
 {
@@ -74,4 +88,3 @@ failed:
      }
      panic("FAIL: T.T\n");
 }
-

@@ -37,6 +37,15 @@ int kern_init(void)
     idt_init(); // init interrupt descriptor table
 
     vmm_init(); // init virtual memory management
+    /*
+     * 调度器初始化（lab6）
+     *
+     * sched_init() 会把“调度器框架”与“具体调度算法”绑定起来：
+     * - 选择一个 sched_class（例如 RR 或 Stride）
+     * - 初始化全局运行队列 run_queue，并设置 max_time_slice
+     *
+     * 之后时钟中断会通过 proc_tick 驱动时间片消耗，need_resched 会触发 schedule() 做进程切换。
+     */
     sched_init();
     proc_init(); // init process table
 

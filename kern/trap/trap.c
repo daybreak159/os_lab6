@@ -22,10 +22,6 @@
 static void print_ticks()
 {
     cprintf("%d ticks\n", TICK_NUM);
-#ifdef DEBUG_GRADE
-    cprintf("End of Test.\n");
-    panic("EOT: kernel seems ok.");
-#endif
 }
 
 /* idt_init - initialize IDT to each of the entry points in kern/trap/vectors.S */
@@ -129,6 +125,15 @@ void interrupt_handler(struct trapframe *tf)
          * (4)判断打印次数，当打印次数为10时，调用<sbi.h>中的关机函数关机
          */
 
+        /*
+         * 时钟中断与抢占式调度（lab6）
+         *
+         * - clock_set_next_event：重新设置下一次时钟中断，确保周期性 tick
+         * - ticks++：全局节拍计数
+         * - sched_class_proc_tick(current)：调用调度算法的 proc_tick，递减 time_slice 并可能设置 need_resched
+         *
+         * 注意：ucore 的调度发生在“回到用户态之前”，当 need_resched 被置位后，trap 返回路径会调用 schedule()。
+         */
         // lab6:2310675 (update LAB3 steps)
         // lab6:2310675 重新预约下一次时钟中断，保证周期性触发
         clock_set_next_event();

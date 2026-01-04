@@ -7,18 +7,37 @@
 
 #define USE_SKEW_HEAP 1
 
+/*
+ * default_sched_stride.c：Stride Scheduling（lab6 Challenge1，调度算法可切换）
+ *
+ * 目标：让“被调度次数/CPU 份额”与进程 priority 成正比。
+ *
+ * 做法：
+ * - 每个进程维护 stride（也叫 pass）：数值越小越优先运行
+ * - 每次选中一个进程运行后，更新：
+ *     stride += BIG_STRIDE / priority
+ *   priority 越大，步进越小，stride 增长越慢，因此更容易保持“最小”，从而获得更多 CPU 时间。
+ *
+ * 数据结构：
+ * - 用 skew heap（斜堆）作为优先队列，实现快速取出 stride 最小的进程。
+ * - compare 函数 proc_stride_comp_f 采用“差值的有符号比较”以缓解无符号溢出问题。
+ */
+
 /* You should define the BigStride constant here*/
+/* 你需要在这里定义 BIG_STRIDE（大步长常量） */
 /* LAB6 CHALLENGE 1: 2310675 */
 // lab6:2310675 选择一个足够大的常数以降低溢出影响（与 RV32/无符号比较配合）
 #define BIG_STRIDE (1 << 30) /* you should give a value, and is ??? */
 
 /* The compare function for two skew_heap_node_t's and the
  * corresponding procs*/
+/* 用于比较两个斜堆节点（对应两个进程）的 stride 大小的比较函数 */
 static int
 proc_stride_comp_f(void *a, void *b)
 {
      struct proc_struct *p = le2proc(a, lab6_run_pool);
      struct proc_struct *q = le2proc(b, lab6_run_pool);
+     // 通过“差值转 int32_t”的方式比较无符号 stride，降低溢出时直接比较带来的错误风险
      int32_t c = p->lab6_stride - q->lab6_stride;
      if (c > 0)
           return 1;
@@ -31,13 +50,19 @@ proc_stride_comp_f(void *a, void *b)
 /*
  * stride_init initializes the run-queue rq with correct assignment for
  * member variables, including:
+ * stride_init 会初始化运行队列 rq 的关键成员，包括：
  *
  *   - run_list: should be a empty list after initialization.
+ *   - run_list：初始化后应为空链表（仅有表头结点）。
  *   - lab6_run_pool: NULL
+ *   - lab6_run_pool：优先队列（斜堆）堆顶指针，初始化为 NULL 表示队列为空。
  *   - proc_num: 0
+ *   - proc_num：运行队列中的进程数量清零。
  *   - max_time_slice: no need here, the variable would be assigned by the caller.
+ *   - max_time_slice：这里无需设置，由调用者（sched_init）赋值。
  *
  * hint: see libs/list.h for routines of the list structures.
+ * 提示：链表相关操作可参考 libs/list.h。
  */
 static void
 stride_init(struct run_queue *rq)
@@ -59,12 +84,18 @@ stride_init(struct run_queue *rq)
  * of ``proc'', and then put the ``lab6_run_pool'' node into the
  * queue(since we use priority queue here). The procedure should also
  * update the meta date in ``rq'' structure.
+ * stride_enqueue 把进程 proc 插入到运行队列 rq：
+ * - 初始化/校正 proc 的相关字段（如 time_slice）
+ * - 将 proc 对应的斜堆节点 proc->lab6_run_pool 插入到 rq->lab6_run_pool（优先队列）中
+ * - 更新 rq->proc_num 等统计信息
  *
  * proc->time_slice denotes the time slices allocation for the
  * process, which should set to rq->max_time_slice.
+ * proc->time_slice 表示该进程本轮可使用的剩余时间片；入队时通常应设置为 rq->max_time_slice。
  *
  * hint: see libs/skew_heap.h for routines of the priority
  * queue structures.
+ * 提示：优先队列（斜堆）接口见 libs/skew_heap.h。
  */
 static void
 stride_enqueue(struct run_queue *rq, struct proc_struct *proc)
@@ -98,9 +129,13 @@ stride_enqueue(struct run_queue *rq, struct proc_struct *proc)
  * stride_dequeue removes the process ``proc'' from the run-queue
  * ``rq'', the operation would be finished by the skew_heap_remove
  * operations. Remember to update the ``rq'' structure.
+ * stride_dequeue 将进程 proc 从运行队列 rq 中移除：
+ * - 使用 skew_heap_remove 把 proc->lab6_run_pool 从 rq->lab6_run_pool 中删除
+ * - 更新 rq->proc_num 等统计信息
  *
  * hint: see libs/skew_heap.h for routines of the priority
  * queue structures.
+ * 提示：优先队列（斜堆）接口见 libs/skew_heap.h。
  */
 static void
 stride_dequeue(struct run_queue *rq, struct proc_struct *proc)
@@ -125,12 +160,20 @@ stride_dequeue(struct run_queue *rq, struct proc_struct *proc)
  * pointer. The process pointer would be calculated by macro le2proc,
  * see kern/process/proc.h for definition. Return NULL if
  * there is no process in the queue.
+ * stride_pick_next 从运行队列中选择 stride 最小的进程并返回：
+ * - 使用斜堆时，堆顶就是 stride 最小的节点，可用 le2proc 取回对应的 proc_struct
+ * - 使用链表时，需要遍历查找最小 stride（复杂度更高）
+ * 队列为空则返回 NULL。
  *
  * When one proc structure is selected, remember to update the stride
  * property of the proc. (stride += BIG_STRIDE / priority)
+ * 选中进程后需要更新其 stride：
+ *   stride += BIG_STRIDE / priority
+ * priority 越大，增量越小，stride 增长越慢，因此更容易保持“最小”，获得更多 CPU。
  *
  * hint: see libs/skew_heap.h for routines of the priority
  * queue structures.
+ * 提示：优先队列（斜堆）接口见 libs/skew_heap.h。
  */
 static struct proc_struct *
 stride_pick_next(struct run_queue *rq)
@@ -181,6 +224,10 @@ stride_pick_next(struct run_queue *rq)
  * denotes the time slices left for current
  * process. proc->need_resched is the flag variable for process
  * switching.
+ * stride_proc_tick 处理当前进程的一个“时钟滴答”：
+ * - 递减 proc->time_slice（剩余时间片）
+ * - 若时间片耗尽，则设置 proc->need_resched 触发调度
+ * 与 RR 类似：tick 只设置标志位，真正的 schedule 在 trap 返回用户态前的安全点执行。
  */
 static void
 stride_proc_tick(struct run_queue *rq, struct proc_struct *proc)

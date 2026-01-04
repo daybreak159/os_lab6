@@ -67,6 +67,15 @@ struct proc_struct
     uint32_t lab6_priority;                 // FOR LAB6 ONLY: the priority of process, set by lab6_set_priority(uint32_t)
 };
 
+/*
+ * 与调度相关的进程字段（lab6）
+ *
+ * - rq/run_link：把进程挂到运行队列（RR 使用链表队列）
+ * - time_slice：RR 的时间片；在 tick 中递减，耗尽则触发重调度
+ * - lab6_run_pool：Stride 使用的优先队列节点（skew heap entry）
+ * - lab6_stride/lab6_priority：Stride 的步进值与权重（priority 越大，获得 CPU 越多）
+ */
+
 #define PF_EXITING 0x00000001 // getting shutdown
 
 #define WT_CHILD (0x00000001 | WT_INTERRUPTED)

@@ -1203,7 +1203,7 @@ main(void) {
      panic("FAIL: T.T\n");
   80072c:	00000617          	auipc	a2,0x0
   800730:	40c60613          	addi	a2,a2,1036 # 800b38 <error_string+0x160>
-  800734:	04b00593          	li	a1,75
+  800734:	05900593          	li	a1,89
   800738:	00000517          	auipc	a0,0x0
   80073c:	41050513          	addi	a0,a0,1040 # 800b48 <error_string+0x170>
   800740:	8e7ff0ef          	jal	ra,800026 <__panic>

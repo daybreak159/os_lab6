@@ -3,6 +3,14 @@
 #include <string.h>
 #include <stdlib.h>
 
+/*
+ * matrix：调度测试程序之一
+ *
+ * 思路：创建一批子进程，每个子进程做一定量的 CPU 计算（矩阵乘法）并打印开始/结束。
+ * - 能否全部跑完并输出 "matrix pass."：验证 fork/wait/exit 基本正确
+ * - 多进程长时间计算场景下系统是否仍能响应：间接验证时钟中断驱动的抢占式调度是否工作
+ */
+
 #define MATSIZE     10
 
 static int mata[MATSIZE][MATSIZE];
@@ -19,6 +27,7 @@ work(unsigned int times) {
     }
 
     yield();
+    // 主动让出一次 CPU，确保调度路径（sys_yield -> need_resched -> schedule）可触发
 
     cprintf("pid %d is running (%d times)!.\n", getpid(), times);
 
@@ -81,4 +90,3 @@ failed:
     }
     panic("FAIL: T.T\n");
 }
-

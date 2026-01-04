@@ -7,6 +7,18 @@
 #include <assert.h>
 #include <clock.h>
 
+/*
+ * syscall.c：系统调用分发（lab6）
+ *
+ * 与调度相关的新增系统调用：
+ * - SYS_gettime：返回当前 ticks（便于用户态统计运行时间）
+ * - SYS_lab6_set_priority：设置当前进程 priority（供 priority.c 测试 Stride 使用）
+ *
+ * 注意：syscall 通过 trapframe 传参与返回值：
+ * - a0 放 syscall 号与返回值
+ * - a1..a5 放参数
+ */
+
 static int
 sys_exit(uint64_t arg[]) {
     int error_code = (int)arg[0];
@@ -65,9 +77,11 @@ sys_pgdir(uint64_t arg[]) {
     return 0;
 }
 static int sys_gettime(uint64_t arg[]){
+    // 用户态以毫秒为单位的粗略时间（ticks * 10ms）
     return (int)ticks*10;
 }
 static int sys_lab6_set_priority(uint64_t arg[]){
+    // 设置当前进程优先级（Stride 中权重越大，得到 CPU 越多）
     uint64_t priority = (uint64_t)arg[0];
     lab6_set_priority(priority);
     return 0;
@@ -108,4 +122,3 @@ syscall(void) {
     panic("undefined syscall %d, pid = %d, name = %s.\n",
             num, current->pid, current->name);
 }
-

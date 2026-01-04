@@ -143,6 +143,9 @@ alloc_proc(void)
         proc->cptr = proc->optr = proc->yptr = NULL;
 
         // lab6:2310675 LAB6 调度相关字段
+        // 这些字段用于“调度框架 + 具体调度算法”协作：
+        // - rq/run_link/time_slice：RR 使用（就绪队列链表 + 时间片）
+        // - lab6_run_pool/lab6_stride/lab6_priority：Stride 使用（优先队列节点 + 步进/权重）
         proc->rq = NULL;
         list_init(&(proc->run_link));
         proc->time_slice = 0;
@@ -545,6 +548,8 @@ bad_fork_cleanup_proc:
 //   1. call exit_mmap & put_pgdir & mm_destroy to free the almost all memory space of process
 //   2. set process' state as PROC_ZOMBIE, then call wakeup_proc(parent) to ask parent reclaim itself.
 //   3. call scheduler to switch to other process
+//
+// 这是实验指导书中提到的“主动调度”触发点之一：进程退出后会主动调用 schedule() 让出 CPU。
 int do_exit(int error_code)
 {
     if (current == idleproc)
@@ -831,6 +836,7 @@ execve_exit:
 // do_yield - ask the scheduler to reschedule
 int do_yield(void)
 {
+    // 主动让出 CPU：置位 need_resched，trap 返回路径会在回到用户态前调用 schedule()
     current->need_resched = 1;
     return 0;
 }
@@ -838,6 +844,8 @@ int do_yield(void)
 // do_wait - wait one OR any children with PROC_ZOMBIE state, and free memory space of kernel stack
 //         - proc struct of this child.
 // NOTE: only after do_wait function, all resources of the child proces are free.
+//
+// do_wait 也是“主动调度”触发点：如果子进程未退出，父进程进入 PROC_SLEEPING 并 schedule() 等待被唤醒。
 int do_wait(int pid, int *code_store)
 {
     struct mm_struct *mm = current->mm;
@@ -1052,6 +1060,7 @@ void proc_init(void)
 // cpu_idle - at the end of kern_init, the first kernel thread idleproc will do below works
 void cpu_idle(void)
 {
+    // idle 线程：系统没有可运行进程时占用 CPU；当 need_resched 被置位时进入 schedule()
     while (1)
     {
         if (current->need_resched)
@@ -1064,6 +1073,8 @@ void cpu_idle(void)
 void lab6_set_priority(uint32_t priority)
 {
     cprintf("set priority to %d\n", priority);
+    // priority 由用户态 priority.c 通过系统调用设置，用于 Stride 调度的权重；
+    // 在 RR 调度下该值不会影响调度结果（RR 只保证时间片轮转的公平性）。
     if (priority == 0)
         current->lab6_priority = 1;
     else
