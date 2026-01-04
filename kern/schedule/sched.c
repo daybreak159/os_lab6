@@ -62,13 +62,13 @@ void sched_init(void)
 {
     list_init(&timer_list);
 
-    // 在这里绑定调度算法（lab6_beifen）：
+    // 在这里绑定调度算法（lab6）：
     // - make grade（DEBUG_GRADE）保持 RR，满足评分脚本输出
-    // - make qemu 默认切换为 FIFO，便于观察 FCFS 的行为
+    // - make qemu 默认切换为 Stride，便于观察按优先级分配 CPU 份额的行为
 #ifdef DEBUG_GRADE
     sched_class = &default_sched_class;
 #else
-    sched_class = &fifo_sched_class;
+    sched_class = &stride_sched_class;
 #endif
 
     rq = &__rq;
